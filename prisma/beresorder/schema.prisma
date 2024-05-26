@@ -1,0 +1,462 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "beresorder"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin {
+  id             String        @id @unique(map: "id") @db.Char(36)
+  google_id      String?       @db.VarChar(30)
+  nama           String        @db.VarChar(25)
+  email          String        @unique(map: "email") @db.VarChar(40)
+  phone          String?       @db.VarChar(40)
+  password       String        @db.VarChar(80)
+  pass_fail      Int           @default(0)
+  pass_fail_at   DateTime?     @db.Timestamp(0)
+  role           String        @db.VarChar(20)
+  isaktif        Boolean
+  otp            String?       @db.VarChar(80)
+  otp_resend_at  DateTime?     @db.Timestamp(0)
+  otp_expired_at DateTime?     @db.Timestamp(0)
+  otp_fail       Int           @default(0)
+  otp_fail_at    DateTime?     @db.Timestamp(0)
+  token          String?       @db.Text
+  tokenRefresh   String?       @db.Text
+  created_at     DateTime?     @db.Timestamp(0)
+  saldo_topup    saldo_topup[]
+}
+
+model icon {
+  id                    String                  @id @db.Char(36)
+  img                   String                  @db.VarChar(80)
+  deleted_at            DateTime?               @db.Timestamp(0)
+  perusahaan_delivery   perusahaan_delivery[]
+  perusahaan_pembayaran perusahaan_pembayaran[]
+}
+
+model order {
+  id                       String                @id @db.Char(36)
+  perusahaan_id            String                @db.Char(36)
+  outlet_id                String                @db.Char(36)
+  nama                     String?               @db.VarChar(20)
+  no_meja                  String?               @db.VarChar(5)
+  tipe_pemesanan           String                @db.VarChar(20)
+  tipe_bayar               String                @db.VarChar(20)
+  tipe_pelayanan           String                @db.VarChar(20)
+  perusahaan_pembayaran_id String                @db.Char(36)
+  perusahaan_delivery_id   String                @db.Char(36)
+  subtotal                 Decimal               @default(0.00) @db.Decimal(13, 2)
+  diskon_persen            Decimal               @default(0.00) @db.Decimal(5, 2)
+  diskon                   Decimal               @default(0.00) @db.Decimal(13, 2)
+  ongkir                   Decimal               @default(0.00) @db.Decimal(13, 2)
+  dpp                      Decimal               @default(0.00) @db.Decimal(13, 2)
+  ppn                      Decimal               @default(0.00) @db.Decimal(13, 2)
+  service_charge           Decimal               @default(0.00) @db.Decimal(13, 2)
+  total_bayar              Decimal               @default(0.00) @db.Decimal(13, 2)
+  status_bayar             order_status_bayar
+  status                   order_status
+  byUser                   String?               @db.Char(36)
+  created_at               DateTime?             @db.Timestamp(0)
+  updated_at               DateTime?             @db.Timestamp(0)
+  deleted_at               DateTime?             @db.Timestamp(0)
+  perusahaan               perusahaan            @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_ibfk_1")
+  outlet                   outlet                @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_ibfk_2")
+  perusahaan_pembayaran    perusahaan_pembayaran @relation(fields: [perusahaan_pembayaran_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_ibfk_3")
+  perusahaan_delivery      perusahaan_delivery   @relation(fields: [perusahaan_delivery_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_ibfk_4")
+  user                     user?                 @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_ibfk_7")
+  saldo_kredit             saldo_kredit[]
+  transaksi                transaksi[]
+
+  @@index([outlet_id], map: "outlet_id")
+  @@index([perusahaan_delivery_id], map: "perusahaan_delivery_id")
+  @@index([perusahaan_id], map: "perusahaan_id")
+  @@index([perusahaan_pembayaran_id], map: "perusahaan_pembayaran_id")
+  @@index([byUser], map: "updatedByAdmin")
+}
+
+model order_produk {
+  id         String    @id @db.Char(36)
+  nama       String    @db.VarChar(30)
+  outlet_id  String    @db.Char(36)
+  produk_id  String?   @db.Char(36)
+  harga      Decimal   @default(0.00) @db.Decimal(13, 2)
+  byUser     String?   @db.Char(36)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  outlet     outlet    @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_produk_ibfk_1")
+  produk     produk?   @relation(fields: [produk_id], references: [id], onUpdate: NoAction, map: "order_produk_ibfk_2")
+  user       user?     @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_produk_ibfk_3")
+
+  @@index([outlet_id], map: "outlet_id")
+  @@index([produk_id], map: "produk_id")
+  @@index([byUser], map: "updatedByAdmin")
+}
+
+model outlet {
+  id                     String                   @id @db.Char(36)
+  perusahaan_id          String                   @db.Char(36)
+  nama                   String                   @db.VarChar(80)
+  alamat                 String?                  @db.LongText
+  telp                   String?                  @db.VarChar(15)
+  isaktif                Int                      @default(1) @db.TinyInt
+  byUser                 String?                  @db.Char(36)
+  created_at             DateTime?                @db.Timestamp(0)
+  updated_at             DateTime?                @db.Timestamp(0)
+  deleted_at             DateTime?                @db.Timestamp(0)
+  order                  order[]
+  order_produk           order_produk[]
+  perusahaan             perusahaan               @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_ibfk_1")
+  user                   user?                    @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_ibfk_2")
+  outlet_fasilitas       outlet_fasilitas[]
+  outlet_jam_operasional outlet_jam_operasional[]
+  outlet_user            outlet_user[]
+  produk_outlet          produk_outlet[]
+  transaksi              transaksi[]
+
+  @@index([perusahaan_id], map: "perusahaan_id")
+  @@index([byUser], map: "updatedBy")
+}
+
+model outlet_fasilitas {
+  id         String    @id @db.Char(36)
+  outlet_id  String    @db.Char(36)
+  nama       String    @db.VarChar(100)
+  keterangan String?   @db.LongText
+  img        String    @db.VarChar(80)
+  created_at DateTime? @db.Timestamp(0)
+  outlet     outlet    @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_fasilitas_ibfk_1")
+
+  @@index([outlet_id], map: "outlet_id")
+}
+
+model outlet_jam_operasional {
+  id        String   @id @db.Char(36)
+  outlet_id String   @db.Char(36)
+  hari      String   @db.VarChar(15)
+  jam_buka  DateTime @db.Time(0)
+  jam_tutup DateTime @db.Time(0)
+  istutup   Boolean  @default(false)
+  outlet    outlet   @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_jam_operasional_ibfk_1")
+
+  @@index([outlet_id], map: "outlet_id")
+}
+
+model outlet_user {
+  id         String    @id @db.Char(36)
+  outlet_id  String    @db.Char(36)
+  user_id    String    @db.Char(36)
+  isaktif    Boolean   @default(true)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  outlet     outlet    @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_user_ibfk_1")
+  user       user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "outlet_user_ibfk_2")
+
+  @@index([outlet_id], map: "outlet_id")
+  @@index([user_id], map: "user_id")
+}
+
+model perusahaan {
+  id                    String                  @id @db.Char(36)
+  nama                  String                  @db.VarChar(50)
+  alamat                String?                 @db.LongText
+  telp                  String?                 @db.VarChar(16)
+  logo                  String?                 @db.VarChar(80)
+  cover                 String?                 @db.VarChar(80)
+  pph                   Decimal                 @default(0.00) @db.Decimal(5, 2)
+  tipe_pemesanan        String
+  tipe_bayar            String
+  tipe_pelayanan        String
+  premium_expired_at    DateTime                @default(now()) @db.Timestamp(0)
+  isaktif               Boolean                 @default(true)
+  created_at            DateTime?               @db.Timestamp(0)
+  byUser                String?                 @db.Char(36)
+  order                 order[]
+  outlet                outlet[]
+  user                  user?                   @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_ibfk_1")
+  perusahaan_delivery   perusahaan_delivery[]
+  perusahaan_pembayaran perusahaan_pembayaran[]
+  perusahaan_user       perusahaan_user[]
+  produk                produk[]
+  produk_kategori       produk_kategori[]
+  saldo_kredit          saldo_kredit[]
+  saldo_topup           saldo_topup[]
+  transaksi             transaksi[]
+  transaksi_kategori    transaksi_kategori[]
+
+  @@index([byUser], map: "byAdmin")
+}
+
+model perusahaan_delivery {
+  id            String     @id @db.Char(36)
+  perusahaan_id String     @db.Char(36)
+  icon_id       String     @db.Char(36)
+  nama          String     @db.VarChar(30)
+  deleted_at    DateTime?  @db.Timestamp(0)
+  order         order[]
+  perusahaan    perusahaan @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_delivery_ibfk_1")
+  icon          icon       @relation(fields: [icon_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_delivery_ibfk_2")
+
+  @@index([icon_id], map: "icon_id")
+  @@index([perusahaan_id], map: "perusahaan_id")
+}
+
+model perusahaan_pembayaran {
+  id            String      @id @db.Char(36)
+  perusahaan_id String      @db.Char(36)
+  icon_id       String      @db.Char(36)
+  nama          String      @db.VarChar(40)
+  biaya         Decimal     @db.Decimal(13, 2)
+  deleted_at    DateTime?   @db.Timestamp(0)
+  order         order[]
+  perusahaan    perusahaan  @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_pembayaran_ibfk_1")
+  icon          icon        @relation(fields: [icon_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_pembayaran_ibfk_2")
+  transaksi     transaksi[]
+
+  @@index([icon_id], map: "icon_id")
+  @@index([perusahaan_id], map: "perusahaan_id")
+}
+
+model perusahaan_user {
+  id            String               @id @db.Char(36)
+  perusahaan_id String               @db.Char(36)
+  user_id       String               @db.Char(36)
+  role          perusahaan_user_role
+  isaktif       Boolean              @default(true)
+  created_at    DateTime?            @db.Timestamp(0)
+  perusahaan    perusahaan           @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_user_ibfk_1")
+  user          user                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "perusahaan_user_ibfk_2")
+
+  @@index([perusahaan_id], map: "perusahaan_id")
+  @@index([user_id], map: "user_id")
+}
+
+model produk {
+  id              String            @id @db.Char(36)
+  perusahaan_id   String            @db.Char(36)
+  nama            String            @db.VarChar(80)
+  keterangan      String            @db.LongText
+  isaktif         Int               @default(1) @db.TinyInt
+  byUser          String?           @db.Char(36)
+  created_at      DateTime?         @db.Timestamp(0)
+  deleted_at      DateTime?         @db.Timestamp(0)
+  order_produk    order_produk[]
+  perusahaan      perusahaan        @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_ibfk_1")
+  user            user?             @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_ibfk_2")
+  produk_outlet   produk_outlet[]
+  produk_tambahan produk_tambahan[]
+
+  @@index([perusahaan_id], map: "perusahaan_id")
+  @@index([byUser], map: "updatedBy")
+}
+
+model produk_kategori {
+  id            String     @id @db.Char(36)
+  perusahaan_id String     @db.Char(36)
+  nama          String     @db.VarChar(30)
+  deleted_at    DateTime?  @db.Timestamp(0)
+  perusahaan    perusahaan @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_kategori_ibfk_1")
+
+  @@index([perusahaan_id], map: "perusahaan_id")
+}
+
+model produk_outlet {
+  id                                                              String            @id @db.Char(36)
+  outlet_id                                                       String            @db.Char(36)
+  produk_id                                                       String            @db.Char(36)
+  harga                                                           Decimal           @db.Decimal(13, 2)
+  tersedia                                                        Boolean           @default(true)
+  byUser                                                          String?           @db.Char(36)
+  outlet                                                          outlet            @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_outlet_ibfk_1")
+  produk                                                          produk            @relation(fields: [produk_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_outlet_ibfk_2")
+  user                                                            user?             @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_outlet_ibfk_3")
+  produk_tambahan_produk_tambahan_produk_outlet_idToproduk_outlet produk_tambahan[] @relation("produk_tambahan_produk_outlet_idToproduk_outlet")
+  produk_tambahan_produk_tambahan_namaToproduk_outlet             produk_tambahan[] @relation("produk_tambahan_namaToproduk_outlet")
+
+  @@index([outlet_id], map: "outlet_id")
+  @@index([produk_id], map: "produk_id")
+  @@index([byUser], map: "updatedBy")
+}
+
+model produk_tambahan {
+  id                                                            String                  @id @db.Char(36)
+  produk_id                                                     String                  @db.Char(36)
+  produk_outlet_id                                              String                  @db.Char(36)
+  nama                                                          String                  @db.Char(36)
+  wajibPilih                                                    Boolean                 @default(false)
+  pilihSatu                                                     Boolean                 @default(false)
+  deleted_at                                                    DateTime?               @db.Timestamp(0)
+  produk_outlet_produk_tambahan_produk_outlet_idToproduk_outlet produk_outlet           @relation("produk_tambahan_produk_outlet_idToproduk_outlet", fields: [produk_outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_tambahan_ibfk_1")
+  produk_outlet_produk_tambahan_namaToproduk_outlet             produk_outlet           @relation("produk_tambahan_namaToproduk_outlet", fields: [nama], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_tambahan_ibfk_2")
+  produk                                                        produk                  @relation(fields: [produk_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produk_tambahan_ibfk_3")
+  produk_tambahan_items                                         produk_tambahan_items[]
+
+  @@index([nama], map: "nama")
+  @@index([produk_id], map: "produk_id")
+  @@index([produk_outlet_id], map: "produk_outlet_id")
+}
+
+model produk_tambahan_items {
+  id                 String          @id @db.Char(36)
+  produk_tambahan_id String          @db.Char(36)
+  nama               String          @db.VarChar(30)
+  harga              Decimal         @default(0.00) @db.Decimal(13, 2)
+  updated_at         DateTime?       @db.Timestamp(0)
+  deleted_at         DateTime?       @db.Timestamp(0)
+  produk_tambahan    produk_tambahan @relation(fields: [produk_tambahan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produk_tambahan_items_ibfk_1")
+
+  @@index([produk_tambahan_id], map: "produk_tambahan_id")
+}
+
+model saldo_kredit {
+  id            String                   @id @db.Char(36)
+  perusahaan_id String                   @db.Char(36)
+  tipe          saldo_kredit_tipe
+  nominal       Decimal                  @db.Decimal(13, 2)
+  keterangan    saldo_kredit_keterangan?
+  order_id      String?                  @db.Char(36)
+  created_at    DateTime?                @db.Timestamp(0)
+  deleted_at    DateTime?                @db.Timestamp(0)
+  perusahaan    perusahaan               @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "saldo_kredit_ibfk_1")
+  order         order?                   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "saldo_kredit_ibfk_2")
+
+  @@index([order_id], map: "order_id")
+  @@index([perusahaan_id], map: "perusahaan_id")
+}
+
+model saldo_topup {
+  id            String             @id @db.Char(36)
+  perusahaan_id String             @db.Char(36)
+  nominal       Decimal            @default(0.00) @db.Decimal(13, 2)
+  fee           Decimal            @default(0.00) @db.Decimal(10, 2)
+  ppn           Decimal            @default(0.00) @db.Decimal(10, 2)
+  total_bayar   Decimal            @default(0.00) @db.Decimal(13, 2)
+  status        saldo_topup_status
+  keterangan    String             @db.Text
+  byUser        String?            @db.Char(36)
+  byAdmin       String?            @db.Char(36)
+  created_at    DateTime?          @db.Timestamp(0)
+  updated_at    DateTime?          @db.Timestamp(0)
+  perusahaan    perusahaan         @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "saldo_topup_ibfk_1")
+  user          user?              @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "saldo_topup_ibfk_2")
+  admin         admin?             @relation(fields: [byAdmin], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "saldo_topup_ibfk_3")
+
+  @@index([byAdmin], map: "byAdmin")
+  @@index([byUser], map: "byUser")
+  @@index([perusahaan_id], map: "perusahaan_id")
+}
+
+model transaksi {
+  id                       String                 @id @db.Char(36)
+  perusahaan_id            String                 @db.Char(36)
+  outlet_id                String?                @db.Char(36)
+  perusahaan_pembayaran_id String?                @db.Char(36)
+  order_id                 String?                @db.Char(36)
+  tipe                     transaksi_tipe
+  transaksi_kategori_id    String                 @db.Char(36)
+  nominal                  Decimal                @db.Decimal(13, 2)
+  keterangan               String                 @db.Text
+  created_at               DateTime?              @db.Timestamp(0)
+  updated_at               DateTime?              @db.Timestamp(0)
+  deleted_at               DateTime?              @db.Timestamp(0)
+  byUser                   String?                @db.Char(36)
+  perusahaan               perusahaan             @relation(fields: [perusahaan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_1")
+  outlet                   outlet?                @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_2")
+  perusahaan_pembayaran    perusahaan_pembayaran? @relation(fields: [perusahaan_pembayaran_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_3")
+  transaksi_kategori       transaksi_kategori     @relation(fields: [transaksi_kategori_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_4")
+  user                     user?                  @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_5")
+  order                    order?                 @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_ibfk_7")
+
+  @@index([byUser], map: "olehAdmin")
+  @@index([order_id], map: "order_id")
+  @@index([outlet_id], map: "outlet_id")
+  @@index([perusahaan_id], map: "perusahaan_id")
+  @@index([perusahaan_pembayaran_id], map: "perusahaan_pembayaran_id")
+  @@index([transaksi_kategori_id], map: "transaksi_kategori_id")
+}
+
+model transaksi_kategori {
+  id           String                  @id @db.Char(36)
+  tipe         transaksi_kategori_tipe
+  nama         String                  @db.VarChar(30)
+  perushaan_id String                  @db.Char(36)
+  deleted_at   DateTime?               @db.Timestamp(0)
+  byUser       String?                 @db.Char(36)
+  transaksi    transaksi[]
+  perusahaan   perusahaan              @relation(fields: [perushaan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "transaksi_kategori_ibfk_1")
+  user         user?                   @relation(fields: [byUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaksi_kategori_ibfk_2")
+
+  @@index([perushaan_id], map: "perushaan_id")
+  @@index([byUser], map: "updatedBy")
+}
+
+model user {
+  id                 String               @id @db.Char(36)
+  nama               String               @db.VarChar(30)
+  img                String?              @db.VarChar(80)
+  telp               String?              @db.VarChar(15)
+  email              String               @db.VarChar(40)
+  password           String               @db.VarChar(80)
+  isaktif            Int                  @default(1) @db.TinyInt
+  otp                String?              @db.VarChar(80)
+  otp_expired_at     DateTime?            @db.Timestamp(0)
+  created_at         DateTime?            @db.Timestamp(0)
+  order              order[]
+  order_produk       order_produk[]
+  outlet             outlet[]
+  outlet_user        outlet_user[]
+  perusahaan         perusahaan[]
+  perusahaan_user    perusahaan_user[]
+  produk             produk[]
+  produk_outlet      produk_outlet[]
+  saldo_topup        saldo_topup[]
+  transaksi          transaksi[]
+  transaksi_kategori transaksi_kategori[]
+}
+
+enum transaksi_kategori_tipe {
+  masuk
+  keluar
+}
+
+enum saldo_kredit_tipe {
+  masuk
+  keluar
+}
+
+enum perusahaan_user_role {
+  pemilik
+  admin
+  kasir
+  dapur
+}
+
+enum saldo_kredit_keterangan {
+  masuk
+  keluar
+}
+
+enum transaksi_tipe {
+  masuk
+  keluar
+}
+
+enum saldo_topup_status {
+  pending
+  success
+  failed
+}
+
+enum order_status_bayar {
+  belum_bayar @map("belum bayar")
+  lunas
+}
+
+enum order_status {
+  pesanan_baru     @map("pesanan baru")
+  pesanan_berjalan @map("pesanan berjalan")
+  pesanan_selesai  @map("pesanan selesai")
+}
