@@ -9,3 +9,6 @@ module.exports = {
 // npx prisma generate --schema=prisma/schema1.prisma
 // npx prisma db pull --schema=prisma/schema1.prisma
 // npx prisma db push --schema=prisma/schema1.prisma
+
+
+// git pull origin main --allow-unrelated-histories
